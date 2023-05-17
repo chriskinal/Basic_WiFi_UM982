@@ -437,8 +437,8 @@ float BNO080::getRoll()
 	float ysqr = dqy * dqy;
 
 	// roll (x-axis rotation)
-	float t0 = +2.0 * (dqw * dqx + dqy * dqz);
-	float t1 = +1.0 - 2.0 * (dqx * dqx + ysqr);
+	float t0 = +2.0f * (dqw * dqx + dqy * dqz);
+	float t1 = +1.0f - 2.0f * (dqx * dqx + ysqr);
 	float roll = atan2(t0, t1);
 
 	return (roll);
@@ -461,9 +461,9 @@ float BNO080::getPitch()
 	//float ysqr = dqy * dqy; Brian Tee unused variable ysqr
 
 	// pitch (y-axis rotation)
-	float t2 = +2.0 * (dqw * dqy - dqz * dqx);
-	t2 = t2 > 1.0 ? 1.0 : t2;
-	t2 = t2 < -1.0 ? -1.0 : t2;
+	float t2 = +2.0f * (dqw * dqy - dqz * dqx);
+	t2 = t2 > 1.0f ? 1.0f : t2;
+	t2 = t2 < -1.0f ? -1.0f : t2;
 	float pitch = asin(t2);
 
 	return (pitch);
@@ -486,8 +486,8 @@ float BNO080::getYaw()
 	float ysqr = dqy * dqy;
 
 	// yaw (z-axis rotation)
-	float t3 = +2.0 * (dqw * dqz + dqx * dqy);
-	float t4 = +1.0 - 2.0 * (ysqr + dqz * dqz);
+	float t3 = +2.0f * (dqw * dqz + dqx * dqy);
+	float t4 = +1.0f - 2.0f * (ysqr + dqz * dqz);
 	float yaw = atan2(t3, t4);
 
 	return (yaw);
@@ -1158,8 +1158,7 @@ void BNO080::sendCalibrateCommand(uint8_t thingToCalibrate)
 		shtpData[4] = 1;
 		shtpData[5] = 1;
 	}
-	else if (thingToCalibrate == CALIBRATE_STOP)
-		; //Do nothing, bytes are set to zero
+	else if (thingToCalibrate == CALIBRATE_STOP) {}; //Do nothing, bytes are set to zero
 
 	//Make the internal calStatus variable non-zero (operation failed) so that user can test while we wait
 	calibrationStatus = 1;
