@@ -56,7 +56,7 @@ WiFiUDP WiF_udpNtrip;
 
 //Swap BNO08x roll & pitch?
 //const bool swapRollPitch = false;
-const bool swapRollPitch = true;
+const bool swapRollPitch = false;
 
 //BNO08x, time after last GPS to load up IMU ready data for the next Panda takeoff
 const uint16_t IMU_DELAY_TIME = 90; //Best results seem to be 90-95ms
@@ -152,6 +152,8 @@ void setup()
     delay(1000);
     pinMode(26, OUTPUT);
     pinMode(deBugPin, INPUT_PULLUP);
+    pinMode(2, OUTPUT);
+    digitalWrite(2, LOW);
     deBug = !digitalRead(deBugPin);
     Serial.println();
     
@@ -285,6 +287,7 @@ void setup()
         WiF_ipDestination[3] = WiF_ipDest_ending;
         
       WiF_running = true;
+      digitalWrite(2, HIGH);
       Serial.println();
       Serial.print("WiFi IP of roof module: "); Serial.println(WiFi.localIP());
       Serial.print("WiFi sending to IP: "); Serial.println(WiF_ipDestination);
