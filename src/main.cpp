@@ -19,11 +19,11 @@ bool deBug = false;
 
 //Serial Ports
 #define SerialGPS Serial1   //1st F9P 10hz GGA,VTG + 1074,1084,1094,1230,4072.0
-#define RX1   27
-#define TX1   16
+#define RX1   16
+#define TX1   17
 #define SerialGPS2 Serial2  //2nd F9P 10hz relPos
-#define RX2   25
-#define TX2   17
+#define RX2   255
+#define TX2   255
 const int32_t baudGPS = 115200;
 
 #define SerialAOG Serial    //AgOpen / USB
@@ -34,9 +34,9 @@ const bool isLastSentenceGGA = true;
 
 //I2C pins, SDA = 21, SCL = 22
 //Note - Pullup resistors will be needed on both SDA & SCL pins
-//Reassign i2c pins to make remote IMU hookup easier
-#define I2C_SDA 14
-#define I2C_SCL 13
+//Reassign i2c pins to make remote IMU hookup easier on 32 pin MCU's
+//#define I2C_SDA 21
+//#define I2C_SCL 22
 
 //WiFi
 
@@ -136,10 +136,10 @@ void CalculateChecksum();
 
 void setup()
 {
+    SerialAOG.setRxBufferSize(300);
     SerialAOG.begin(baudAOG);
     SerialGPS.setRxBufferSize(512);
     SerialGPS.begin(baudGPS, SERIAL_8N1, RX1, TX1);
-    SerialGPS.setRxBufferSize(300);
     //GPS2 Started below
 
     //the dash means wildcard
@@ -147,8 +147,9 @@ void setup()
     parser.addHandler("G-GGA", GGA_Handler);
     parser.addHandler("G-VTG", VTG_Handler);
 
-    Wire.begin(I2C_SDA, I2C_SCL);
-    delay(500);
+    //Wire.begin(I2C_SDA, I2C_SCL);
+    Wire.begin();
+    delay(1000);
     pinMode(26, OUTPUT);
     pinMode(deBugPin, INPUT_PULLUP);
     deBug = !digitalRead(deBugPin);
