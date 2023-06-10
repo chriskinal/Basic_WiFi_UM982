@@ -24,7 +24,7 @@ bool deBug = false;
 #define SerialGPS2 Serial2  //2nd F9P 10hz relPos
 #define RX2   255
 #define TX2   255
-const int32_t baudGPS = 115200;
+const int32_t baudGPS = 460800;
 
 #define SerialAOG Serial    //AgOpen / USB
 const int32_t baudAOG = 115200; 
@@ -136,10 +136,11 @@ void CalculateChecksum();
 
 void setup()
 {
-    SerialAOG.setRxBufferSize(300);
+    SerialAOG.setRxBufferSize(512);
     SerialAOG.begin(baudAOG);
     SerialGPS.setRxBufferSize(512);
     SerialGPS.begin(baudGPS, SERIAL_8N1, RX1, TX1);
+
     //GPS2 Started below
 
     //the dash means wildcard
