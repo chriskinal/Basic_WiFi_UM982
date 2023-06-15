@@ -11,8 +11,7 @@
 #include <WiFiManager.h>
 #include <WiFi.h>
 #include <WiFiUDP.h>
-// #include <SyncWifiConnectionESP32.h>
-// #include <verysimpletimer.h>
+
 /************************* User Settings *************************/
 #define deBugPin   25
 bool deBug = false;
@@ -22,8 +21,8 @@ bool deBug = false;
 #define RX1   16
 #define TX1   17
 #define SerialGPS2 Serial2  //2nd F9P 10hz relPos
-#define RX2   255
-#define TX2   255
+#define RX2   18
+#define TX2   19
 const int32_t baudGPS = 460800;
 
 #define SerialAOG Serial    //AgOpen / USB
@@ -44,7 +43,7 @@ byte WiF_ipDest_ending = 255;        //ending of IP address to send UDP data to
 unsigned int portMy = 5544;          //this is port of this module
 unsigned int AOGNtripPort = 2233;    //port NTRIP data from AOG comes in
 unsigned int portDestination = 9999; //Port of AOG that listens
-// bool Ethernet_running = false;
+// bool WiFi_running = false;
 bool WiF_running = false;
 //char Eth_NTRIP_packetBuffer[512];    // buffer for receiving and sending data
 char WiF_NTRIP_packetBuffer[512];    // buffer for receiving and sending data
@@ -55,7 +54,7 @@ WiFiUDP WiF_udpPAOGI;
 WiFiUDP WiF_udpNtrip;
 
 //Swap BNO08x roll & pitch?
-//const bool swapRollPitch = false;
+//const bool swapRollPitch = true;
 const bool swapRollPitch = false;
 
 //BNO08x, time after last GPS to load up IMU ready data for the next Panda takeoff
