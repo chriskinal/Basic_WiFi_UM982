@@ -13,8 +13,14 @@
 #include <WiFiUDP.h>
 
 /************************* User Settings *************************/
-#define deBugPin   25
+#define deBugPin   27
 bool deBug = false;
+
+// LED settings
+#define pwrLED 32
+#define imuLED 26
+#define ggaLED 25
+#define wifLED 33
 
 //Serial Ports
 #define SerialGPS Serial1   //1st F9P 10hz GGA,VTG + 1074,1084,1094,1230,4072.0
@@ -135,6 +141,18 @@ void CalculateChecksum();
 
 void setup()
 {
+    
+    // Setup LEDs
+    pinMode(pwrLED, OUTPUT);
+    pinMode(imuLED, OUTPUT);
+    pinMode(ggaLED, OUTPUT);
+    pinMode(wifLED, OUTPUT);
+    digitalWrite(pwrLED, HIGH);
+    digitalWrite(imuLED, LOW);
+    digitalWrite(ggaLED, LOW);
+    digitalWrite(wifLED, LOW);
+    
+    // Setup serial ports
     SerialAOG.setRxBufferSize(512);
     SerialAOG.begin(baudAOG);
     SerialGPS.setRxBufferSize(512);
@@ -288,6 +306,7 @@ void setup()
         
       WiF_running = true;
       digitalWrite(2, HIGH);
+      digitalWrite(wifLED, HIGH);
       Serial.println();
       Serial.print("WiFi IP of roof module: "); Serial.println(WiFi.localIP());
       Serial.print("WiFi sending to IP: "); Serial.println(WiF_ipDestination);
