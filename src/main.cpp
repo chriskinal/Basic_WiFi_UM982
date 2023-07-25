@@ -24,16 +24,16 @@ bool deBug = false;
 
 //Serial Ports
 #define SerialGPS Serial1   //1st F9P 10hz GGA,VTG + 1074,1084,1094,1230,4072.0
-#define RX1   16
-#define TX1   17
+#define RX1   18
+#define TX1   19
 #define SerialGPS2 Serial2  //2nd F9P 10hz relPos
-#define RX2   18
-#define TX2   19
-const int32_t baudGPS = 460800;
+#define RX2   16
+#define TX2   17
+const int32_t baudGPS = 115200;
 
 #define SerialAOG Serial    //AgOpen / USB
-const int32_t baudAOG = 115200; 
- 
+const int32_t baudAOG = 115200;
+
 //is the GGA the second sentence?
 const bool isLastSentenceGGA = true;
 
@@ -138,7 +138,6 @@ void checksum();
 void relPosDecode();
 void CalculateChecksum();
 
-
 void setup()
 {
     
@@ -157,6 +156,7 @@ void setup()
     SerialAOG.begin(baudAOG);
     SerialGPS.setRxBufferSize(512);
     SerialGPS.begin(baudGPS, SERIAL_8N1, RX1, TX1);
+    Serial.println("Started GPS1 *****************");
 
     //GPS2 Started below
 
@@ -173,7 +173,9 @@ void setup()
     pinMode(2, OUTPUT);
     digitalWrite(2, LOW);
     deBug = !digitalRead(deBugPin);
-    Serial.println();
+    //deBug = true;
+    Serial.print("deBug Status: ");
+    Serial.println(deBug);
     
     //test if CMPS working
     uint8_t error;
@@ -190,6 +192,7 @@ void setup()
           Serial.println("CMPS14 Ok.");
         } 
         useCMPS = true;
+        digitalWrite(imuLED, HIGH);
     }
     else
     {
@@ -236,6 +239,7 @@ void setup()
 
               // Break out of loop
               useBNO08x = true;
+              digitalWrite(imuLED, HIGH);
               break;
             }
                     else
@@ -260,9 +264,10 @@ void setup()
     
    if (!useCMPS && !useBNO08x)
     {
+      SerialGPS2.setRxBufferSize(512);
       SerialGPS2.begin(baudGPS, SERIAL_8N1, RX2, TX2);
-      SerialGPS2.setRxBufferSize(150);
-      //useDual = true;
+      Serial.println("Started GPS2 ******************");
+      useDual = true;
     }
 
 //WiFi
@@ -351,6 +356,7 @@ void loop()
     if (WiF_running) doWiFUDPNtrip();
 
     deBug = !digitalRead(deBugPin);
+    deBug = true;
     IMU_currentTime = millis();
 
 if(!useDual){
@@ -389,7 +395,14 @@ if(!useDual){
 }//End Not Dual
 
 if(!useCMPS && !useBNO08x){
-
+  // if (deBug)
+  //   {
+  //     Serial.println("Using dual ............");
+  //     Serial.print("GGAReady: ");
+  //     Serial.println(GGAReady);
+  //     Serial.print("relPosReady: ");
+  //     Serial.println(relPosReady);
+  //   }
 if(GGAReady == true && relPosReady == true) {
   BuildPANDA();
   GGAReady = false;
@@ -397,6 +410,7 @@ if(GGAReady == true && relPosReady == true) {
 }
   
     if (SerialGPS2.available()) {
+      //Serial.println("GPS2 data available ...");
     incoming_char = SerialGPS2.read();
     if (i < 4 && incoming_char == ackPacket[i]) {
       i++;
@@ -407,6 +421,7 @@ if(GGAReady == true && relPosReady == true) {
     }
   }
   if (i > 71) {
+    //Serial.println("checksum calcinf");
     checksum();
     i = 0;
   }
@@ -425,9 +440,11 @@ void checksum() {
   }
 
   if (CK_A == ackPacket[70] && CK_B == ackPacket[71]) {
+    
   if(deBug) Serial.println("ACK Received! ");
     useDual = true;
     relPosDecode();
+    //Serial.println("ACK Received! ");
   }
   else {
   if(deBug) Serial.println("ACK Checksum Failure: ");
@@ -508,6 +525,7 @@ void GyroHandler(uint32_t delta)
 // ****************************************************************
 // zRelPos.cpp
 void relPosDecode() {
+  
 
   int carrSoln;
   bool gnssFixOk, diffSoln, relPosValid, isMoving, refPosMiss, refObsMiss ;
@@ -519,11 +537,11 @@ void relPosDecode() {
   heading += (long)ackPacket[26 + 6] << 16 ;
   heading += (long)ackPacket[27 + 6] << 24 ;
   heading = heading / 10000;
-
   heading = heading + headingcorr;
   if (heading >= 3600) heading -= 3600;
   if (heading < 0) heading += 3600;
   heading = heading / 10;
+  //Serial.println(heading);
 
   baseline  =  (long)ackPacket[20 + 6] ;
   baseline += (long)ackPacket[21 + 6] << 8;
@@ -545,7 +563,7 @@ void relPosDecode() {
 
   uint32_t flags = ackPacket[60 + 6];
 
-  //  Serial.println(flags, BIN);
+    // Serial.println(flags, BIN);
 
   gnssFixOk = flags & (1 << 0);
   diffSoln = flags & (1 << 1);
@@ -557,13 +575,21 @@ void relPosDecode() {
   refPosHeadingValid = flags & (1 << 8);
   relPosNormalized = flags & (1 << 9);
 
+  // Serial.println(carrSoln);
+
   if (gnssFixOk && diffSoln && relPosValid)
   {
-     //Serial.println("Alles OK! ");
+     if(deBug) Serial.println("Alles OK! ");
   }
   else
   {
-    // Serial.println("Fehler! ");
+     if (deBug)
+      {
+        Serial.println("Fehler! ");
+        Serial.println(gnssFixOk);
+        Serial.println(diffSoln);
+        Serial.println(relPosValid);
+       }
     return;
   }
 
@@ -656,8 +682,8 @@ void GGA_Handler() //Rec'd GGA
     if (parser.getArg(12, ageDGPS));
 
     if (blink)
-        digitalWrite(13, HIGH);
-    else digitalWrite(13, LOW);
+        digitalWrite(ggaLED, HIGH);
+    else digitalWrite(ggaLED, LOW);
     blink = !blink;
 
    if(deBug) Serial.println("GGA Ready");
