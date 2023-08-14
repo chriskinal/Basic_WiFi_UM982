@@ -356,7 +356,7 @@ void loop()
     if (WiF_running) doWiFUDPNtrip();
 
     deBug = !digitalRead(deBugPin);
-    deBug = true;
+    //deBug = true;
     IMU_currentTime = millis();
 
 if(!useDual){
@@ -407,10 +407,11 @@ if(GGAReady == true && relPosReady == true) {
   BuildPANDA();
   GGAReady = false;
   relPosReady = false;
+  digitalWrite(imuLED,millis()%512>256);
 }
   
     if (SerialGPS2.available()) {
-      //Serial.println("GPS2 data available ...");
+    //Serial.println("GPS2 data available ...");
     incoming_char = SerialGPS2.read();
     if (i < 4 && incoming_char == ackPacket[i]) {
       i++;
@@ -681,10 +682,11 @@ void GGA_Handler() //Rec'd GGA
     //time of last DGPS update
     if (parser.getArg(12, ageDGPS));
 
-    if (blink)
-        digitalWrite(ggaLED, HIGH);
-    else digitalWrite(ggaLED, LOW);
-    blink = !blink;
+    // if (blink)
+    //     digitalWrite(ggaLED, HIGH);
+    // else digitalWrite(ggaLED, LOW);
+    // blink = !blink;
+    digitalWrite(ggaLED,millis()%512>256);
 
    if(deBug) Serial.println("GGA Ready");
    
