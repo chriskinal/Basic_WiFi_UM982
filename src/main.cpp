@@ -49,9 +49,7 @@ byte WiF_ipDest_ending = 255;        //ending of IP address to send UDP data to
 unsigned int portMy = 5544;          //this is port of this module
 unsigned int AOGNtripPort = 2233;    //port NTRIP data from AOG comes in
 unsigned int portDestination = 9999; //Port of AOG that listens
-// bool WiFi_running = false;
 bool WiF_running = false;
-//char Eth_NTRIP_packetBuffer[512];    // buffer for receiving and sending data
 char WiF_NTRIP_packetBuffer[512];    // buffer for receiving and sending data
 #define YOUR_WIFI_HOSTNAME "AOG_GPS"
 
@@ -137,6 +135,8 @@ void GyroHandler(uint32_t delta);
 void checksum();
 void relPosDecode();
 void CalculateChecksum();
+
+// Begin Setup ----------------------------------------------------------------
 
 void setup()
 {
@@ -340,7 +340,11 @@ void setup()
     Serial.println();
     delay(2000);
 
-} // end of setup ---------------------------------------------
+}
+
+// end of setup ----------------------------------------------------------------------
+
+// Begin main loop -------------------------------------------------------------------
 
 void loop()
 {
@@ -430,7 +434,7 @@ if(GGAReady == true && relPosReady == true) {
 
 } //Loop
 
-//**************************************************************************
+// Checksum calulation **************************************************************************
 
 void checksum() {
   CK_A = 0;
@@ -453,7 +457,7 @@ void checksum() {
   byte ackPacket[72] = {0xB5, 0x62, 0x01, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 }
 
-//**************************************************************************
+// Ntrip handling**************************************************************************
 
 void doWiFUDPNtrip() {
   unsigned int packetLenght = WiF_udpNtrip.parsePacket();
@@ -463,7 +467,7 @@ void doWiFUDPNtrip() {
   }  
 } 
 
-// ************************************************************************
+// Gyro handler ************************************************************************
 // zGyro.cpp
 void GyroHandler(uint32_t delta)
 {      
@@ -523,7 +527,7 @@ void GyroHandler(uint32_t delta)
 	lastGyroTime = millis();
 }
 
-// ****************************************************************
+// Relative position handler ****************************************************************
 // zRelPos.cpp
 void relPosDecode() {
   
@@ -615,7 +619,7 @@ double p = sqrt(baseline*baseline-relPosD*relPosD);
   }
 }
 
-// ********************************************************************
+// Other hnadlers ********************************************************************
 // zHandlers.cpp
 
 
