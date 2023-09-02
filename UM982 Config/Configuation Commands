@@ -1,0 +1,13 @@
+From AOG Discourse
+The heading offset doesn’t save when um982 is restarted, all other settings save though.
+
+mode rover automotive
+mode heading2 tractor
+config heading tractor
+config heading offset 90 0
+config rtk timeout 600
+unlogall
+log com1 ksxt ontime .1
+log com3 gpgga ontime 2
+saveconfig
+
