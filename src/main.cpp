@@ -1,7 +1,7 @@
 /*
- * This is a simple GPS code for AgOpen GPS
- * It can used as single antenna with IMU and send PANDA to AgOpen
- * Or use two F9P and send PAOGI to AgOpen
+ * This is UM982 GPS code for AgOpen GPS
+ * It with a UM982 board / chip to send PANDA to AgOpen
+ * This was adapted from Mechanictony's Basic_Dual project
  */
  
 #include "NMEAParser.h"
