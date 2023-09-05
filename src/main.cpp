@@ -67,7 +67,7 @@ byte ackPacket[72] = {0xB5, 0x62, 0x01, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 int i = 0;
 
  /* A parser is declared with 3 handlers at most */
-NMEAParser<2> parser;
+NMEAParser<4> parser;
 
 bool isTriggered = false, blink;
 
@@ -76,6 +76,8 @@ bool isTriggered = false, blink;
 void errorHandler();
 void GGA_Handler();
 void VTG_Handler();
+void ROT_Handler();
+void TRA2_Handler();
 void doWiFUDPNtrip();
 void BuildPANDA();
 void checksum();
@@ -110,8 +112,9 @@ void setup()
     parser.setErrorHandler(errorHandler);
     parser.addHandler("G-GGA", GGA_Handler);
     parser.addHandler("G-VTG", VTG_Handler);
-
-
+    parser.addHandler("G-ROT", ROT_Handler);
+    parser.addHandler("G-TRA2", TRA2_Handler);
+    
 //WiFi
 
   WiFiManager wm;
@@ -331,6 +334,18 @@ void VTG_Handler()
    if (!isLastSentenceGGA){
     BuildPANDA(); 
     }
+}
+
+void ROT_Handler()
+{
+    if (parser.getArg(0, imuYawRate)){}
+}
+
+void TRA2_Handler()
+{
+    if (parser.getArg(1, imuHeading)){}
+    if (parser.getArg(2, imuPitch)){}
+    if (parser.getArg(3, imuRoll)){}
 }
 
 void BuildPANDA(void)
