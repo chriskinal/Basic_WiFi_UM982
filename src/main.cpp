@@ -27,7 +27,7 @@ bool deBug = false;
 #define SerialGPS2 Serial2  //2nd F9P 10hz relPos
 #define RX2   16
 #define TX2   17
-const int32_t baudGPS = 115200;
+const int32_t baudGPS = 460800;
 
 #define SerialAOG Serial    //AgOpen / USB
 const int32_t baudAOG = 115200;
