@@ -209,7 +209,9 @@ if(GGAReady == true ) {
   GGAReady = false;
   digitalWrite(imuLED,millis()%512>256);
 }
-} //Loop
+} 
+
+// End main loop
 
 // Checksum calulation **************************************************************************
 
@@ -229,7 +231,6 @@ void checksum() {
   else {
   if(deBug) Serial.println("ACK Checksum Failure: ");
   }
-  byte ackPacket[72] = {0xB5, 0x62, 0x01, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 }
 
 // Ntrip handling**************************************************************************
@@ -283,30 +284,30 @@ void errorHandler()
 void GGA_Handler() //Rec'd GGA
 {
     // fix time
-    if (parser.getArg(0, fixTime));
+    if (parser.getArg(0, fixTime)){}
 
     //latitude
-    if (parser.getArg(1, latitude));
-    if (parser.getArg(2, latNS));
+    if (parser.getArg(1, latitude)){}
+    if (parser.getArg(2, latNS)){}
 
     //longitude
-    if (parser.getArg(3, longitude));
-    if (parser.getArg(4, lonEW));
+    if (parser.getArg(3, longitude)){}
+    if (parser.getArg(4, lonEW)){}
 
     //fix quality
-    if (parser.getArg(5, fixQuality));
+    if (parser.getArg(5, fixQuality)){}
 
     //satellite #
-    if (parser.getArg(6, numSats));
+    if (parser.getArg(6, numSats)){}
 
     //HDOP
-    if (parser.getArg(7, HDOP));
+    if (parser.getArg(7, HDOP)){}
 
     //altitude
-    if (parser.getArg(8, altitude));
+    if (parser.getArg(8, altitude)){}
 
     //time of last DGPS update
-    if (parser.getArg(12, ageDGPS));
+    if (parser.getArg(12, ageDGPS)){}
 
     digitalWrite(ggaLED,millis()%512>256);
 
@@ -320,10 +321,10 @@ void GGA_Handler() //Rec'd GGA
 void VTG_Handler()
 {
     //vtg heading
-    if (parser.getArg(0, vtgHeading));
+    if (parser.getArg(0, vtgHeading)){}
 
     //vtg Speed knots
-    if (parser.getArg(4, speedKnots));
+    if (parser.getArg(4, speedKnots)){}
 
    if(deBug) Serial.println("VTG Ready");
     
