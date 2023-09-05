@@ -5,8 +5,6 @@
  */
  
 #include "NMEAParser.h"
-#include <Wire.h>
-#include "BNO08x_AOG.h"
 #include <Arduino.h>
 #include <WiFiManager.h>
 #include <WiFi.h>
@@ -57,49 +55,9 @@ IPAddress WiF_ipDestination;
 WiFiUDP WiF_udpPAOGI;
 WiFiUDP WiF_udpNtrip;
 
-//Swap BNO08x roll & pitch?
-//const bool swapRollPitch = true;
-const bool swapRollPitch = false;
-
-//BNO08x, time after last GPS to load up IMU ready data for the next Panda takeoff
-const uint16_t IMU_DELAY_TIME = 90; //Best results seem to be 90-95ms
-uint32_t IMU_lastTime = IMU_DELAY_TIME;
-uint32_t IMU_currentTime = IMU_DELAY_TIME;
-
-//BNO08x, how offen should we get data from IMU (The above will just grab this data without reading IMU)
-const uint16_t GYRO_LOOP_TIME = 10;  
-uint32_t lastGyroTime = GYRO_LOOP_TIME;
-
-//CMPS14, how long should we wait with GPS before reading data from IMU then takeoff with Panda
-const uint16_t CMPS_DELAY_TIME = 4;  //Best results seem to be around 5ms
-uint32_t gpsReadyTime = CMPS_DELAY_TIME;
-
-// Booleans to see if we are using CMPS or BNO08x or Dual
-bool useCMPS = false;
-bool useBNO08x = false;
-bool useDual = false;
 bool GGAReady = false;
-bool relPosReady = false;
-
-//CMPS always x60
-#define CMPS14_ADDRESS 0x60 
-
-// BNO08x address variables to check where it is
-const uint8_t bno08xAddresses[] = { 0x4A,0x4B };
-const int16_t nrBNO08xAdresses = sizeof(bno08xAddresses) / sizeof(bno08xAddresses[0]);
-uint8_t bno08xAddress;
-BNO080 bno08x;
 
 //Dual 
-double headingcorr = 900;  //90deg heading correction (90deg*10)
-
-float baseline;
-double baseline2;
-float rollDual;
-float rollDualRaw;
-double relPosD;
-double relPosDH;
-double heading = 0;
 
 byte CK_A = 0, CK_B = 0;
 byte incoming_char;
@@ -113,27 +71,14 @@ NMEAParser<2> parser;
 
 bool isTriggered = false, blink;
 
-//100hz summing of gyro
-float gyro, gyroSum;
-float lastHeading;
-
-float roll, rollSum;
-float pitch, pitchSum;
-
-float bno08xHeading = 0;
-int16_t bno08xHeading10x = 0;
-
 // Declare functions
 
 void errorHandler();
 void GGA_Handler();
 void VTG_Handler();
 void doWiFUDPNtrip();
-void imuHandler();
 void BuildPANDA();
-void GyroHandler(uint32_t delta);
 void checksum();
-void relPosDecode();
 void CalculateChecksum();
 
 // Begin Setup ----------------------------------------------------------------
@@ -157,118 +102,15 @@ void setup()
     SerialGPS.setRxBufferSize(512);
     SerialGPS.begin(baudGPS, SERIAL_8N1, RX1, TX1);
     Serial.println("Started GPS1 *****************");
-
-    //GPS2 Started below
-
+    SerialGPS2.setRxBufferSize(512);
+    SerialGPS2.begin(baudGPS, SERIAL_8N1, RX2, TX2);
+    Serial.println("Started GPS2 ******************");
+   
     //the dash means wildcard
     parser.setErrorHandler(errorHandler);
     parser.addHandler("G-GGA", GGA_Handler);
     parser.addHandler("G-VTG", VTG_Handler);
 
-    //Wire.begin(I2C_SDA, I2C_SCL);
-    Wire.begin();
-    delay(1000);
-    pinMode(26, OUTPUT);
-    pinMode(deBugPin, INPUT_PULLUP);
-    pinMode(2, OUTPUT);
-    digitalWrite(2, LOW);
-    deBug = !digitalRead(deBugPin);
-    //deBug = true;
-    Serial.print("deBug Status: ");
-    Serial.println(deBug);
-    
-    //test if CMPS working
-    uint8_t error;
-    if(deBug) Serial.println("Checking for CMPS14");
-    Wire.beginTransmission(CMPS14_ADDRESS);
-    error = Wire.endTransmission();
-
-    if (error == 0)
-    {
-        if(deBug) {
-          Serial.println("Error = 0");
-          Serial.print("CMPS14 ADDRESs: 0x");
-          Serial.println(CMPS14_ADDRESS, HEX);
-          Serial.println("CMPS14 Ok.");
-        } 
-        useCMPS = true;
-        digitalWrite(imuLED, HIGH);
-    }
-    else
-    {
-        if(deBug) {
-          Serial.println("Error = 4");
-          Serial.println("CMPS not Connected or Found"); 
-        }
-    }
-
-    if (!useCMPS)
-    {
-        for (int16_t i = 0; i < nrBNO08xAdresses; i++)
-        {
-            bno08xAddress = bno08xAddresses[i];
-          if(deBug) {
-            Serial.print("\r\nChecking for BNO08X on ");
-            Serial.println(bno08xAddress, HEX);
-          }
-            Wire.beginTransmission(bno08xAddress);
-            error = Wire.endTransmission();
-
-            if (error == 0)
-            {
-              if(deBug) {
-                Serial.println("Error = 0");
-                Serial.print("BNO08X ADDRESs: 0x");
-                Serial.println(bno08xAddress, HEX);
-                Serial.println("BNO08X Ok.");
-              }
-                          // Initialize BNO080 lib        
-                if (bno08x.begin(bno08xAddress))
-                {
-                    Wire.setClock(400000); //Increase I2C data rate to 400kHz
-
-            // Use gameRotationVector
-            bno08x.enableGyro(GYRO_LOOP_TIME);
-            bno08x.enableGameRotationVector(GYRO_LOOP_TIME-1);
-                       
-            // Retrieve the getFeatureResponse report to check if Rotation vector report is corectly enable
-            if (bno08x.getFeatureResponseAvailable() == true)
-            {
-              if (bno08x.checkReportEnable(SENSOR_REPORTID_GYRO_INTEGRATED_ROTATION_VECTOR, (GYRO_LOOP_TIME-1)) == false) bno08x.printGetFeatureResponse();
-              if (bno08x.checkReportEnable(SENSOR_REPORTID_GAME_ROTATION_VECTOR, (GYRO_LOOP_TIME-1)) == false) bno08x.printGetFeatureResponse();
-
-              // Break out of loop
-              useBNO08x = true;
-              digitalWrite(imuLED, HIGH);
-              break;
-            }
-                    else
-                    {
-                        if(deBug) Serial.println("BNO08x init fails!!");
-                    }
-                }
-                else
-                {
-                    if(deBug) Serial.println("BNO080 not detected at given I2C address.");
-                }
-            }
-            else
-            {
-                if(deBug) {
-                  Serial.println("Error = 4");
-                  Serial.println("BNO08X not Connected or Found"); 
-                }    
-            }
-        }
-    }
-    
-   if (!useCMPS && !useBNO08x)
-    {
-      SerialGPS2.setRxBufferSize(512);
-      SerialGPS2.begin(baudGPS, SERIAL_8N1, RX2, TX2);
-      Serial.println("Started GPS2 ******************");
-      useDual = true;
-    }
 
 //WiFi
 
@@ -333,7 +175,7 @@ void setup()
   }
   
     Serial.println();
-    Serial.println("Basic Dual or Single GPS for AgOpenGPS"); 
+    Serial.println("Basic Dual UM982 GPS for AgOpenGPS"); 
     Serial.println("Setup done, waiting for GPS Data....."); 
     if (WiF_running) Serial.println("Sending Data Via WiFi and USB"); 
     else Serial.println("Sending Data Via USB Only"); 
@@ -348,90 +190,25 @@ void setup()
 
 void loop()
 {
-    //delay(1000);
-    //Read incoming nmea from GPS
-    if (SerialGPS.available())
-        parser << SerialGPS.read();
+//delay(1000);
+//Read incoming nmea from GPS
+if (SerialGPS.available())
+    parser << SerialGPS.read();
 
-    //Pass NTRIP etc to GPS
-    if (SerialAOG.available())
-        SerialGPS.write(SerialAOG.read());
+//Pass NTRIP etc to GPS
+if (SerialAOG.available())
+    SerialGPS.write(SerialAOG.read());
 
-    if (WiF_running) doWiFUDPNtrip();
+if (WiF_running) doWiFUDPNtrip();
 
-    deBug = !digitalRead(deBugPin);
-    //deBug = true;
-    IMU_currentTime = millis();
+deBug = !digitalRead(deBugPin);
+//deBug = true;
 
-if(!useDual){
-  
-  if (useBNO08x)
-    {  
-      if (isTriggered && IMU_currentTime - IMU_lastTime >= IMU_DELAY_TIME)
-      {
-        //Load up BNO08x data from gyro loop ready for takeoff
-        imuHandler();
-
-        //reset the timer 
-        isTriggered = false;
-      }      
-    }
-
-  if (useCMPS)
-    { 
-      if (isTriggered && IMU_currentTime - gpsReadyTime >= CMPS_DELAY_TIME)
-      {
-        imuHandler(); //Get data from CMPS (Heading, Roll, Pitch) and load up ready for takeoff
-        BuildPANDA(); //Send Panda
-
-        //reset the timer 
-        isTriggered = false;
-      }
-    }  
-
-  IMU_currentTime = millis();    
-
-  if (IMU_currentTime - lastGyroTime >= GYRO_LOOP_TIME)
-    {
-        GyroHandler(IMU_currentTime - lastGyroTime);
-    }
-    
-}//End Not Dual
-
-if(!useCMPS && !useBNO08x){
-  // if (deBug)
-  //   {
-  //     Serial.println("Using dual ............");
-  //     Serial.print("GGAReady: ");
-  //     Serial.println(GGAReady);
-  //     Serial.print("relPosReady: ");
-  //     Serial.println(relPosReady);
-  //   }
-if(GGAReady == true && relPosReady == true) {
+if(GGAReady == true ) {
   BuildPANDA();
   GGAReady = false;
-  relPosReady = false;
   digitalWrite(imuLED,millis()%512>256);
 }
-  
-    if (SerialGPS2.available()) {
-    //Serial.println("GPS2 data available ...");
-    incoming_char = SerialGPS2.read();
-    if (i < 4 && incoming_char == ackPacket[i]) {
-      i++;
-    }
-    else if (i > 3) {
-      ackPacket[i] = incoming_char;
-      i++;
-    }
-  }
-  if (i > 71) {
-    //Serial.println("checksum calcinf");
-    checksum();
-    i = 0;
-  }
- } //Dual
-
 } //Loop
 
 // Checksum calulation **************************************************************************
@@ -447,8 +224,6 @@ void checksum() {
   if (CK_A == ackPacket[70] && CK_B == ackPacket[71]) {
     
   if(deBug) Serial.println("ACK Received! ");
-    useDual = true;
-    relPosDecode();
     //Serial.println("ACK Received! ");
   }
   else {
@@ -467,161 +242,8 @@ void doWiFUDPNtrip() {
   }  
 } 
 
-// Gyro handler ************************************************************************
-// zGyro.cpp
-void GyroHandler(uint32_t delta)
-{      
-      if (useCMPS)
-        {
-      //Get the Z gyro
-      Wire.beginTransmission(CMPS14_ADDRESS);
-      Wire.write(0x16);
-      Wire.endTransmission();
-
-      Wire.requestFrom(CMPS14_ADDRESS, 2);
-      while (Wire.available() < 2);
-
-      gyro = int16_t(Wire.read() << 8 | Wire.read());
-
-      //Complementary filter
-      gyroSum = 0.96 * gyroSum + 0.04 * gyro;
-      }          
-      
-      else if (useBNO08x)
-        {
-        if (bno08x.dataAvailable() == true)
-          {
-            gyro = (bno08x.getGyroZ()) * RAD_TO_DEG; // Get raw yaw rate
-            gyro = gyro * -10;
-
-            bno08xHeading = (bno08x.getYaw()) * RAD_TO_DEG; // Convert yaw / heading to degrees
-            bno08xHeading = -bno08xHeading; //BNO085 counter clockwise data to clockwise data
-
-            if (bno08xHeading < 0 && bno08xHeading >= -180) //Scale BNO085 yaw from [-180�;180�] to [0;360�]
-            {
-                bno08xHeading = bno08xHeading + 360;
-            }
-
-            if (swapRollPitch){
-            roll = (bno08x.getPitch()) * RAD_TO_DEG;
-            pitch = (bno08x.getRoll()) * RAD_TO_DEG;
-            }
-            else{
-            roll = (bno08x.getRoll()) * RAD_TO_DEG;
-            pitch = (bno08x.getPitch()) * RAD_TO_DEG;
-            pitch = pitch * -1;
-            }
-
-            roll = roll * 10;
-            pitch = pitch * 10;
-            bno08xHeading10x = (int16_t)(bno08xHeading * 10);
-
-            //Complementary filter
-            rollSum = roll;
-            pitchSum = pitch;
-            gyroSum = 0.96 * gyroSum + 0.04 * gyro;
-        }
-    }
-
-	//save time to check for 10 msec
-	lastGyroTime = millis();
-}
-
-// Relative position handler ****************************************************************
-// zRelPos.cpp
-void relPosDecode() {
-  
-
-  int carrSoln;
-  bool gnssFixOk, diffSoln, relPosValid, isMoving, refPosMiss, refObsMiss ;
-  bool refPosHeadingValid, relPosNormalized;
-  double roll;
-
-  heading  =  (long)ackPacket[24 + 6] ;
-  heading += (long)ackPacket[25 + 6] << 8;
-  heading += (long)ackPacket[26 + 6] << 16 ;
-  heading += (long)ackPacket[27 + 6] << 24 ;
-  heading = heading / 10000;
-  heading = heading + headingcorr;
-  if (heading >= 3600) heading -= 3600;
-  if (heading < 0) heading += 3600;
-  heading = heading / 10;
-  //Serial.println(heading);
-
-  baseline  =  (long)ackPacket[20 + 6] ;
-  baseline += (long)ackPacket[21 + 6] << 8;
-  baseline += (long)ackPacket[22 + 6] << 16 ;
-  baseline += (long)ackPacket[23 + 6] << 24 ;
-  baseline = baseline / 100;
-  baseline2 = (long)ackPacket[35 + 6];
-  baseline2 =   baseline2 / 10000;
-  baseline = baseline + baseline2;
-
-  relPosD  =  (long)ackPacket[16 + 6] ;
-  relPosD += (long)ackPacket[17 + 6] << 8;
-  relPosD += (long)ackPacket[18 + 6] << 16 ;
-  relPosD += (long)ackPacket[19 + 6] << 24 ;
-  relPosD = relPosD / 100;
-  relPosDH = (long)ackPacket[34 + 6];
-  relPosDH = relPosDH / 100000;
-  relPosD = relPosD + relPosDH;
-
-  uint32_t flags = ackPacket[60 + 6];
-
-    // Serial.println(flags, BIN);
-
-  gnssFixOk = flags & (1 << 0);
-  diffSoln = flags & (1 << 1);
-  relPosValid = flags & (1 << 2);
-  carrSoln = (flags & (0b11 << 3)) >> 3;
-  isMoving = flags & (1 << 5);
-  refPosMiss = flags & (1 << 6);
-  refObsMiss = flags & (1 << 7);
-  refPosHeadingValid = flags & (1 << 8);
-  relPosNormalized = flags & (1 << 9);
-
-  // Serial.println(carrSoln);
-
-  if (gnssFixOk && diffSoln && relPosValid)
-  {
-     if(deBug) Serial.println("Alles OK! ");
-  }
-  else
-  {
-     if (deBug)
-      {
-        Serial.println("Fehler! ");
-        Serial.println(gnssFixOk);
-        Serial.println(diffSoln);
-        Serial.println(relPosValid);
-       }
-    return;
-  }
-
-double p = sqrt(baseline*baseline-relPosD*relPosD);
-
-  if (carrSoln == 2) {
-   // roll = (atan2(relPosD, baseline)) * 180 / 3.141592653589793238;
-    rollDualRaw = (atan(relPosD/p)) * 180 / 3.141592653589793238;
-    rollDualRaw *= -1;
-    //rollDual = rollDualRaw * 0.5 + rollDual * 0.5;
-    rollDual = rollDualRaw;
-      }
-  else rollDual = rollDual * 0.9;
- 
-  imuHandler();
-  if (carrSoln == 2){
-    relPosReady = true;
-    if(deBug) Serial.println("Dual Ready");
-  }
-  else{
-    if(deBug) Serial.println("Dual Accuracy Not Good");
-  }
-}
-
 // Other hnadlers ********************************************************************
 // zHandlers.cpp
-
 
 //Conversion to Hexidecimal
 const char* asciiHex = "0123456789ABCDEF";
@@ -686,21 +308,12 @@ void GGA_Handler() //Rec'd GGA
     //time of last DGPS update
     if (parser.getArg(12, ageDGPS));
 
-    // if (blink)
-    //     digitalWrite(ggaLED, HIGH);
-    // else digitalWrite(ggaLED, LOW);
-    // blink = !blink;
     digitalWrite(ggaLED,millis()%512>256);
 
    if(deBug) Serial.println("GGA Ready");
    
    if (isLastSentenceGGA){
-      if (useCMPS){
-        gpsReadyTime = millis();
-        isTriggered = true;
-      }
-      else if (useDual) GGAReady = true;
-      else BuildPANDA(); 
+    BuildPANDA();
     }
 }
 
@@ -715,92 +328,7 @@ void VTG_Handler()
    if(deBug) Serial.println("VTG Ready");
     
    if (!isLastSentenceGGA){
-      if (useCMPS){
-        gpsReadyTime = millis();
-        isTriggered = true;
-      }
-      else if (useDual) GGAReady = true;
-      else BuildPANDA(); 
-    }
-}
-
-void imuHandler()
-{
-    int16_t temp = 0;
-
-    if (useCMPS)
-    {
-      //roll
-      Wire.beginTransmission(CMPS14_ADDRESS);
-      Wire.write(0x1C);
-      Wire.endTransmission();
-
-      Wire.requestFrom(CMPS14_ADDRESS, 2);
-      while (Wire.available() < 2);
-
-      roll = int16_t(Wire.read() << 8 | Wire.read());
-
-      //Complementary filter
-      rollSum = roll;
-    
-      //the heading x10
-      Wire.beginTransmission(CMPS14_ADDRESS);
-      Wire.write(0x02);
-      Wire.endTransmission();
-
-      Wire.requestFrom(CMPS14_ADDRESS, 3);
-      while (Wire.available() < 3);
-
-      temp = Wire.read() << 8 | Wire.read();
-      itoa(temp, imuHeading, 10);
-
-      //3rd byte pitch
-      int8_t pitch = Wire.read();
-      itoa(pitch, imuPitch, 10);
-
-      //the roll x10
-      temp = (int16_t)rollSum;
-      itoa(temp, imuRoll, 10);
-
-      //YawRate
-      temp = (int16_t)gyroSum;
-      itoa(temp, imuYawRate, 10);
-
-    }
-    else if (useBNO08x)
-    {
-        //Heading
-        temp = bno08xHeading10x;
-        itoa(temp, imuHeading, 10);
-
-        //the pitch x10
-        temp = (int16_t)pitchSum;
-        itoa(pitch, imuPitch, 10);
-
-        //the roll x10
-        temp = (int16_t)rollSum;
-        itoa(temp, imuRoll, 10);
-
-        //YawRate
-        temp = (int16_t)gyroSum;
-        itoa(temp, imuYawRate, 10);
-    }
-    else if (useDual)
-    {
-        //Heading
-        dtostrf(heading, 3, 1, imuHeading);
-
-        //the pitch x10
-        temp = 0;
-        itoa(pitch, imuPitch, 10);
-
-        //the roll x10
-        dtostrf(rollDual, 3, 1, imuRoll);
-
-        //YawRate
-        temp = 0; 
-        itoa(temp, imuYawRate, 10);
-        
+    BuildPANDA(); 
     }
 }
 
@@ -808,8 +336,7 @@ void BuildPANDA(void)
 {
     strcpy(nme, "");
 
-    if(!useDual) strcat(nme, "$PANDA,");
-    else strcat(nme, "$PAOGI,");
+    strcat(nme, "$PAOGI,");
 
     strcat(nme, fixTime);
     strcat(nme, ",");
@@ -868,7 +395,6 @@ void BuildPANDA(void)
 
     strcat(nme, "\r\n");
 
-    IMU_lastTime = millis();
     isTriggered = true;
     
     if (WiF_running) {
