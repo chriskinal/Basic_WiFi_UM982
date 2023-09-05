@@ -271,12 +271,14 @@ char ageDGPS[10];
 char vtgHeading[12];
 char speedKnots[10];
 
-//imu
+//TRA2
 char imuHeading[6];
 char imuRoll[6];
 char imuPitch[6];
-char imuYawRate[6];
 
+//ROT
+char imuYawRate[6];
+int32_t imuYawRateTmp;
 
 // if odd characters showed up.
 void errorHandler()
@@ -338,13 +340,22 @@ void VTG_Handler()
 
 void ROT_Handler()
 {
-    if (parser.getArg(0, imuYawRate)){}
+    //rot yaw rate degrees/minute 
+    if (parser.getArg(0, imuYawRateTmp))
+    {
+      char imuYawRate = imuYawRateTmp/60;
+    }
 }
 
 void TRA2_Handler()
 {
+    //tra2 heading
     if (parser.getArg(1, imuHeading)){}
+
+    //tra2 pitch
     if (parser.getArg(2, imuPitch)){}
+
+    //tra2 roll
     if (parser.getArg(3, imuRoll)){}
 }
 
