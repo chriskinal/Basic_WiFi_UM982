@@ -67,7 +67,7 @@ byte ackPacket[72] = {0xB5, 0x62, 0x01, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 int i = 0;
 
  /* A parser is declared with 3 handlers at most */
-NMEAParser<4> parser;
+NMEAParser<5> parser;
 
 bool isTriggered = false, blink;
 
@@ -78,6 +78,7 @@ void GGA_Handler();
 void VTG_Handler();
 void ROT_Handler();
 void TRA2_Handler();
+void SXT_Handler();
 void doWiFUDPNtrip();
 void BuildPANDA();
 void checksum();
@@ -114,6 +115,7 @@ void setup()
     parser.addHandler("G-VTG", VTG_Handler);
     parser.addHandler("G-ROT", ROT_Handler);
     parser.addHandler("G-TRA2", TRA2_Handler);
+    parser.addHandler("KSXT", SXT_Handler);
     
 //WiFi
 
@@ -360,6 +362,18 @@ void TRA2_Handler()
 
     //tra2 roll
     if (parser.getArg(3, imuRoll)){}
+}
+
+void SXT_Handler()
+{
+    //sxt heading
+    if (parser.getArg(4, imuHeading)){}
+
+    //sxt pitch
+    if (parser.getArg(5, imuPitch)){}
+
+    //sxt roll
+    if (parser.getArg(8, imuRoll)){}
 }
 
 void BuildPANDA(void)
