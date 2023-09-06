@@ -279,6 +279,7 @@ char imuPitch[6];
 //ROT
 char imuYawRate[6];
 int32_t imuYawRateTmp;
+#define MAX_DIGITS 15
 
 // if odd characters showed up.
 void errorHandler()
@@ -343,7 +344,9 @@ void ROT_Handler()
     //rot yaw rate degrees/minute 
     if (parser.getArg(0, imuYawRateTmp))
     {
-      char imuYawRate = imuYawRateTmp/60;
+      imuYawRateTmp = imuYawRateTmp/60;
+      char imuYawRate[MAX_DIGITS + sizeof(char)];
+      sprintf(imuYawRate, "%d", imuYawRateTmp);
     }
 }
 
