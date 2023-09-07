@@ -302,88 +302,103 @@ void unknownCommand()
 
 void GGA_Handler() //Rec'd GGA
 {
-    // fix time
-    if (parser.getArg(0, fixTime)){}
+  // fix time
+  if (parser.getArg(0, fixTime)){}
 
-    //latitude
-    if (parser.getArg(1, latitude)){}
-    if (parser.getArg(2, latNS)){}
+  //latitude
+  if (parser.getArg(1, latitude)){}
+  if (parser.getArg(2, latNS)){}
 
-    //longitude
-    if (parser.getArg(3, longitude)){}
-    if (parser.getArg(4, lonEW)){}
+  //longitude
+  if (parser.getArg(3, longitude)){}
+  if (parser.getArg(4, lonEW)){}
 
-    //fix quality
-    if (parser.getArg(5, fixQuality)){}
+  //fix quality
+  if (parser.getArg(5, fixQuality)){}
 
-    //satellite #
-    if (parser.getArg(6, numSats)){}
+  //satellite #
+  if (parser.getArg(6, numSats)){}
 
-    //HDOP
-    if (parser.getArg(7, HDOP)){}
+  //HDOP
+  if (parser.getArg(7, HDOP)){}
 
-    //altitude
-    if (parser.getArg(8, altitude)){}
+  //altitude
+  if (parser.getArg(8, altitude)){}
 
-    //time of last DGPS update
-    if (parser.getArg(12, ageDGPS)){}
+  //time of last DGPS update
+  if (parser.getArg(12, ageDGPS)){}
 
-    digitalWrite(ggaLED,millis()%512>256);
+  digitalWrite(ggaLED,millis()%512>256);
 
-   if(deBug) Serial.println("GGA Ready");
-   
-   if (isLastSentenceGGA){
-    BuildPANDA();
-    }
+  if(deBug) Serial.println("GGA Ready");
+  
+  if (isLastSentenceGGA){
+  BuildPANDA();
+  }
 }
 
 void VTG_Handler()
 {
-    //vtg heading
-    if (parser.getArg(0, vtgHeading)){}
+  //vtg heading
+  if (parser.getArg(0, vtgHeading)){}
 
-    //vtg Speed knots
-    if (parser.getArg(4, speedKnots)){}
+  //vtg Speed knots
+  if (parser.getArg(4, speedKnots)){}
 
-   if(deBug) Serial.println("VTG Ready");
-    
-   if (!isLastSentenceGGA){
-    BuildPANDA(); 
-    }
+  if(deBug) Serial.println("VTG Ready");
+  
+  if (!isLastSentenceGGA){
+  BuildPANDA(); 
+  }
 }
 
 void ROT_Handler()
 {
-    //rot yaw rate degrees/minute 
-    if (parser.getArg(0, imuYawRateTmp))
-    {
-      imuYawRateTmp = imuYawRateTmp/60;
-      dtostrf(imuYawRateTmp, 6, 2, imuYawRate);
-    }
+  //rot yaw rate degrees/minute 
+  if (parser.getArg(0, imuYawRateTmp))
+  {
+    imuYawRateTmp = imuYawRateTmp/60;
+    dtostrf(imuYawRateTmp, 6, 2, imuYawRate);
+  }
+
+  if (!isLastSentenceGGA)
+  {
+  BuildPANDA(); 
+  }
 }
 
 void TRA2_Handler()
 {
-    //tra2 heading
-    if (parser.getArg(1, imuHeading)){}
+  //tra2 heading
+  if (parser.getArg(1, imuHeading)){}
 
-    //tra2 pitch
-    if (parser.getArg(2, imuPitch)){}
+  //tra2 pitch
+  if (parser.getArg(2, imuPitch)){}
 
-    //tra2 roll
-    if (parser.getArg(3, imuRoll)){}
+  //tra2 roll
+  if (parser.getArg(3, imuRoll)){}
+
+  if (!isLastSentenceGGA)
+  {
+  BuildPANDA(); 
+  }
 }
 
 void SXT_Handler()
 {
-    //sxt heading
-    if (parser.getArg(4, imuHeading)){}
+  //sxt heading
+  if (parser.getArg(4, imuHeading)){}
 
-    //sxt pitch
-    if (parser.getArg(5, imuPitch)){}
+  //sxt pitch
+  if (parser.getArg(5, imuPitch)){}
 
-    //sxt roll
-    if (parser.getArg(8, imuRoll)){}
+  //sxt roll
+  if (parser.getArg(8, imuRoll)){}
+
+  if (!isLastSentenceGGA)
+  {
+  BuildPANDA(); 
+  }
 }
 
 void BuildPANDA(void)
