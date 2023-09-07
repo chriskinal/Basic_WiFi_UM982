@@ -1,7 +1,7 @@
 /*
  * This is UM982 GPS code for AgOpen GPS
  * It with a UM982 board / chip to send PANDA to AgOpen
- * This was adapted from Mechanictony's Basic_Dual project
+ * This was adapted from MechanicTony's Basic_Dual project
  */
  
 #include "UM982_NMEAParser.h"
