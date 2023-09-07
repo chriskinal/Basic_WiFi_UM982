@@ -21,10 +21,10 @@ bool deBug = false;
 #define wifLED 33
 
 //Serial Ports
-#define SerialGPS Serial1   //1st F9P 10hz GGA,VTG + 1074,1084,1094,1230,4072.0
+#define SerialGPS Serial1   // UM982 COM 2 GGA messages
 #define RX1   18
 #define TX1   19
-#define SerialGPS2 Serial2  //2nd F9P 10hz relPos
+#define SerialGPS2 Serial2  // UM982 COM 3 SXT, TRA2 & ROT messages
 #define RX2   16
 #define TX2   17
 const int32_t baudGPS = 460800;
@@ -74,6 +74,7 @@ bool isTriggered = false, blink;
 // Declare functions
 
 void errorHandler();
+void unknownCommand();
 void GGA_Handler();
 void VTG_Handler();
 void ROT_Handler();
@@ -111,12 +112,13 @@ void setup()
    
     //the dash means wildcard
     parser.setErrorHandler(errorHandler);
+    parser.setDefaultHandler(unknownCommand);
     parser.addHandler("G-GGA", GGA_Handler);
     parser.addHandler("G-VTG", VTG_Handler);
     parser.addHandler("G-ROT", ROT_Handler);
     parser.addHandler("G-TRA2", TRA2_Handler);
     parser.addHandler("KSXT", SXT_Handler);
-    
+      
 //WiFi
 
   WiFiManager wm;
@@ -286,7 +288,16 @@ int32_t imuYawRateTmp;
 // if odd characters showed up.
 void errorHandler()
 {
-    //nothing at the moment
+  Serial.print("*** Error : ");
+  Serial.println(parser.error());
+}
+
+void unknownCommand()
+{
+  Serial.print("*** Unkown command : ");
+  char buf[6];
+  parser.getType(buf);
+  Serial.println(buf);
 }
 
 void GGA_Handler() //Rec'd GGA
