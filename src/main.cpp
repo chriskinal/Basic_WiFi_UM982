@@ -348,7 +348,6 @@ void ROT_Handler()
     {
       imuYawRateTmp = imuYawRateTmp/60;
       dtostrf(imuYawRateTmp, 6, 2, imuYawRate);
-      Serial.println(imuYawRate);
     }
 }
 
