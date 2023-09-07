@@ -16,3 +16,4 @@
 .gitignore
 .clang-format
 node_modules
+~$*
