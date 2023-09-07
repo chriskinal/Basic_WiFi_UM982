@@ -182,7 +182,7 @@ void setup()
   }
   
     Serial.println();
-    Serial.println("Basic Dual UM982 GPS for AgOpenGPS"); 
+    Serial.println("Basic UM982 GPS for AgOpenGPS"); 
     Serial.println("Setup done, waiting for GPS Data....."); 
     if (WiF_running) Serial.println("Sending Data Via WiFi and USB"); 
     else Serial.println("Sending Data Via USB Only"); 
