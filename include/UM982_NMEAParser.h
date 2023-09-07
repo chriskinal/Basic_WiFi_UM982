@@ -66,7 +66,8 @@ public:
    * are not bufferized, 82 - 6 + 1 = 77 chars  are enough.
    * is enough.
    */
-  static const uint8_t kSentenceMaxSize = 90;
+  // Increase kSentenceMaxSize from 90 to 250 to accomodate UM982 extended NMEA sentences.
+  static const uint8_t kSentenceMaxSize = 250;
 
 private:
   /*
@@ -398,7 +399,8 @@ public:
       case SENT:
         if (isalnum(inChar)) {
           if (spaceAvail()) {
-            if (mIndex < 5) {
+            // Increase mIndex from 5 to 6 to accomdate UM982 extended NMEA types.
+            if (mIndex < 6) {
               mBuffer[mIndex++] = inChar;
               mComputedCRC ^= inChar;
             }

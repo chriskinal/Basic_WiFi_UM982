@@ -4,7 +4,7 @@
  * This was adapted from Mechanictony's Basic_Dual project
  */
  
-#include "NMEAParser.h"
+#include "UM982_NMEAParser.h"
 #include <Arduino.h>
 #include <WiFiManager.h>
 #include <WiFi.h>
@@ -347,8 +347,8 @@ void ROT_Handler()
     if (parser.getArg(0, imuYawRateTmp))
     {
       imuYawRateTmp = imuYawRateTmp/60;
-      char imuYawRate[MAX_DIGITS + sizeof(char)];
-      sprintf(imuYawRate, "%d", imuYawRateTmp);
+      dtostrf(imuYawRateTmp, 6, 2, imuYawRate);
+      Serial.println(imuYawRate);
     }
 }
 
