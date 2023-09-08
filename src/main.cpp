@@ -11,16 +11,19 @@
 #include <WiFiUDP.h>
 
 /************************* User Settings *************************/
+
 #define deBugPin   27
 bool deBug = false;
 
 // LED settings
+
 #define pwrLED 32
 #define imuLED 26
 #define ggaLED 25
 #define wifLED 33
 
 //Serial Ports
+
 #define SerialGPS Serial1   // UM982 COM 2 GGA messages
 #define RX1   18
 #define TX1   19
@@ -34,12 +37,6 @@ const int32_t baudAOG = 115200;
 
 //is the GGA the second sentence?
 const bool isLastSentenceGGA = true;
-
-//I2C pins, SDA = 21, SCL = 22
-//Note - Pullup resistors will be needed on both SDA & SCL pins
-//Reassign i2c pins to make remote IMU hookup easier on 32 pin MCU's
-//#define I2C_SDA 21
-//#define I2C_SCL 22
 
 //WiFi
 
@@ -197,25 +194,39 @@ void setup()
 
 void loop()
 {
-//delay(1000);
-//Read incoming nmea from GPS
-if (SerialGPS.available())
-    parser << SerialGPS.read();
+  //delay(1000);
 
-//Pass NTRIP etc to GPS
-if (SerialAOG.available())
-    SerialGPS.write(SerialAOG.read());
+  deBug = !digitalRead(deBugPin);
+  //deBug = true;
 
-if (WiF_running) doWiFUDPNtrip();
+  //Read incoming nmea from GPS
+  if (SerialGPS.available())
+    {
+      parser << SerialGPS.read();
+    }
 
-deBug = !digitalRead(deBugPin);
-//deBug = true;
+  if (SerialGPS2.available())
+    {
+      parser << SerialGPS2.read();
+    }
 
-if(GGAReady == true ) {
-  BuildPANDA();
-  GGAReady = false;
-  digitalWrite(imuLED,millis()%512>256);
-}
+  //Pass NTRIP etc to GPS
+  if (SerialAOG.available())
+    {
+      SerialGPS.write(SerialAOG.read());
+    }
+
+  if (WiF_running)
+    {
+      doWiFUDPNtrip();
+    }
+
+  if(GGAReady == true )
+    {
+      BuildPANDA();
+      GGAReady = false;
+      digitalWrite(imuLED,millis()%512>256);
+    }
 } 
 
 // End main loop
@@ -240,7 +251,7 @@ void checksum() {
   }
 }
 
-// Ntrip handling**************************************************************************
+// Wifi Ntrip handling ****************************************************************/
 
 void doWiFUDPNtrip() {
   unsigned int packetLenght = WiF_udpNtrip.parsePacket();
@@ -250,8 +261,7 @@ void doWiFUDPNtrip() {
   }  
 } 
 
-// Other hnadlers ********************************************************************
-// zHandlers.cpp
+// Other hnadlers ********************************************************************/
 
 //Conversion to Hexidecimal
 const char* asciiHex = "0123456789ABCDEF";
@@ -333,7 +343,7 @@ void GGA_Handler() //Rec'd GGA
   if(deBug) Serial.println("GGA Ready");
   
   if (isLastSentenceGGA){
-  BuildPANDA();
+    BuildPANDA();
   }
 }
 
@@ -347,8 +357,9 @@ void VTG_Handler()
 
   if(deBug) Serial.println("VTG Ready");
   
-  if (!isLastSentenceGGA){
-  BuildPANDA(); 
+  if (!isLastSentenceGGA)
+  {
+    BuildPANDA(); 
   }
 }
 
@@ -363,7 +374,7 @@ void ROT_Handler()
 
   if (!isLastSentenceGGA)
   {
-  BuildPANDA(); 
+    BuildPANDA(); 
   }
 }
 
@@ -380,7 +391,7 @@ void TRA2_Handler()
 
   if (!isLastSentenceGGA)
   {
-  BuildPANDA(); 
+    BuildPANDA(); 
   }
 }
 
@@ -397,108 +408,108 @@ void SXT_Handler()
 
   if (!isLastSentenceGGA)
   {
-  BuildPANDA(); 
+    BuildPANDA(); 
   }
 }
 
 void BuildPANDA(void)
 {
-    strcpy(nme, "");
+  strcpy(nme, "");
 
-    strcat(nme, "$PAOGI,");
+  strcat(nme, "$PAOGI,");
 
-    strcat(nme, fixTime);
-    strcat(nme, ",");
+  strcat(nme, fixTime);
+  strcat(nme, ",");
 
-    strcat(nme, latitude);
-    strcat(nme, ",");
+  strcat(nme, latitude);
+  strcat(nme, ",");
 
-    strcat(nme, latNS);
-    strcat(nme, ",");
+  strcat(nme, latNS);
+  strcat(nme, ",");
 
-    strcat(nme, longitude);
-    strcat(nme, ",");
+  strcat(nme, longitude);
+  strcat(nme, ",");
 
-    strcat(nme, lonEW);
-    strcat(nme, ",");
+  strcat(nme, lonEW);
+  strcat(nme, ",");
 
-    //6
-    strcat(nme, fixQuality);
-    strcat(nme, ",");
+  //6
+  strcat(nme, fixQuality);
+  strcat(nme, ",");
 
-    strcat(nme, numSats);
-    strcat(nme, ",");
+  strcat(nme, numSats);
+  strcat(nme, ",");
 
-    strcat(nme, HDOP);
-    strcat(nme, ",");
+  strcat(nme, HDOP);
+  strcat(nme, ",");
 
-    strcat(nme, altitude);
-    strcat(nme, ",");
+  strcat(nme, altitude);
+  strcat(nme, ",");
 
-    //10
-    strcat(nme, ageDGPS);
-    strcat(nme, ",");
+  //10
+  strcat(nme, ageDGPS);
+  strcat(nme, ",");
 
-    //11
-    strcat(nme, speedKnots);
-    strcat(nme, ",");
+  //11
+  strcat(nme, speedKnots);
+  strcat(nme, ",");
 
-    //12    
-    strcat(nme, imuHeading);
-    strcat(nme, ",");
+  //12    
+  strcat(nme, imuHeading);
+  strcat(nme, ",");
 
-    //13
-    strcat(nme, imuRoll);
-    strcat(nme, ",");
+  //13
+  strcat(nme, imuRoll);
+  strcat(nme, ",");
 
-    //14
-    strcat(nme, imuPitch);
-    strcat(nme, ",");
+  //14
+  strcat(nme, imuPitch);
+  strcat(nme, ",");
 
-    //15
-    strcat(nme, imuYawRate);
+  //15
+  strcat(nme, imuYawRate);
 
-    strcat(nme, "*");
+  strcat(nme, "*");
 
-    CalculateChecksum();
+  CalculateChecksum();
 
-    strcat(nme, "\r\n");
+  strcat(nme, "\r\n");
 
-    isTriggered = true;
-    
-    if (WiF_running) {
-        WiF_udpPAOGI.beginPacket(WiF_ipDestination, portDestination);
-        WiF_udpPAOGI.print(nme);
-        WiF_udpPAOGI.endPacket();
-      }
+  isTriggered = true;
+  
+  if (WiF_running)
+    {
+      WiF_udpPAOGI.beginPacket(WiF_ipDestination, portDestination);
+      WiF_udpPAOGI.print(nme);
+      WiF_udpPAOGI.endPacket();
+    }
 
-        SerialAOG.print(nme);
+      SerialAOG.print(nme);
 
 }
 
 void CalculateChecksum(void)
 {
+  int16_t sum = 0, inx;
+  char tmp;
 
-    int16_t sum = 0, inx;
-    char tmp;
-
-    // The checksum calc starts after '$' and ends before '*'
-    for (inx = 1; inx < 200; inx++)
+  // The checksum calc starts after '$' and ends before '*'
+  for (inx = 1; inx < 200; inx++)
     {
-        tmp = nme[inx];
-        // * Indicates end of data and start of checksum
-        if (tmp == '*')
-            break;
-        sum ^= tmp;    // Build checksum
+      tmp = nme[inx];
+      // * Indicates end of data and start of checksum
+      if (tmp == '*')
+        break;
+      sum ^= tmp;    // Build checksum
     }
 
-    byte chk = (sum>>4);
-    char hex[2] = {asciiHex[chk],0};
-    strcat(nme,hex);
-    
-    chk = (sum%16);
-    char hex2[2] = { asciiHex[chk],0 };
-    strcat(nme,hex2);
+  byte chk = (sum>>4);
+  char hex[2] = {asciiHex[chk],0};
+  strcat(nme,hex);
+  
+  chk = (sum%16);
+  char hex2[2] = { asciiHex[chk],0 };
+  strcat(nme,hex2);
 }
 
 /*
