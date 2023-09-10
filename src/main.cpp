@@ -16,14 +16,12 @@
 bool deBug = false;
 
 // LED settings
-
 #define pwrLED 32
 #define imuLED 26
 #define ggaLED 25
 #define wifLED 33
 
 //Serial Ports
-
 #define SerialGPS Serial1   // UM982 COM 2 GGA messages
 #define RX1   18
 #define TX1   19
@@ -31,7 +29,6 @@ bool deBug = false;
 #define RX2   16
 #define TX2   17
 const int32_t baudGPS = 115200;
-
 #define SerialAOG Serial    //AgOpen / USB
 const int32_t baudAOG = 115200;
 
@@ -39,7 +36,6 @@ const int32_t baudAOG = 115200;
 //const bool isLastSentenceGGA = true;
 
 //WiFi
-
 byte WiF_ipDest_ending = 255;        //ending of IP address to send UDP data to
 unsigned int portMy = 5544;          //this is port of this module
 unsigned int AOGNtripPort = 2233;    //port NTRIP data from AOG comes in
@@ -47,15 +43,14 @@ unsigned int portDestination = 9999; //Port of AOG that listens
 bool WiF_running = false;
 char WiF_NTRIP_packetBuffer[512];    // buffer for receiving and sending data
 #define YOUR_WIFI_HOSTNAME "AOG_GPS"
-
 IPAddress WiF_ipDestination;
 WiFiUDP WiF_udpPAOGI;
 WiFiUDP WiF_udpNtrip;
 
+// Holds state of GGA parser
 bool GGAReady = false;
 
 //Dual 
-
 byte CK_A = 0, CK_B = 0;
 byte incoming_char;
 boolean headerReceived = false;
@@ -63,11 +58,10 @@ unsigned long ackWait = millis();
 byte ackPacket[72] = {0xB5, 0x62, 0x01, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 int i = 0;
 
- /* A parser is declared with 3 handlers at most */
+ /* A parser is declared with 5 handlers at most */
 NMEAParser<5> parser;
 
 // Declare functions
-
 void errorHandler();
 void unknownCommand();
 void GGA_Handler();
@@ -80,8 +74,7 @@ void BuildPANDA();
 void checksum();
 void CalculateChecksum();
 
-// Begin Setup ----------------------------------------------------------------
-
+// Begin Setup ----------------------------------------------------------------//
 void setup()
 {
     
@@ -121,7 +114,6 @@ void setup()
   parser.addHandler("KSXT", SXT_Handler);
       
 //WiFi
-
   WiFiManager wm;
 
   // set dark theme
@@ -192,14 +184,12 @@ void setup()
 
 }
 
-// end of setup ----------------------------------------------------------------------
+// end of setup ----------------------------------------------------------------------//
 
-// Begin main loop -------------------------------------------------------------------
+// Begin main loop -------------------------------------------------------------------//
 
 void loop()
 {
-  //delay(1000);
-
   deBug = !digitalRead(deBugPin);
   //deBug = true;
 
@@ -235,7 +225,7 @@ void loop()
 
 // End main loop
 
-// Checksum calulation **************************************************************************
+// Checksum calulation ****************************************************************/
 
 void checksum() {
   CK_A = 0;
@@ -299,13 +289,14 @@ char imuYawRate[6];
 int32_t imuYawRateTmp;
 #define MAX_DIGITS 15
 
-// if odd characters showed up.
+// If odd characters showed up in the UM982NMEAParser input.
 void errorHandler()
 {
   Serial.print("*** Error : ");
   Serial.println(parser.error());
 }
 
+// If unknown sentence types show up in the UM982Parser input.
 void unknownCommand()
 {
   Serial.print("*** Unkown command : ");
@@ -314,7 +305,7 @@ void unknownCommand()
   Serial.println(buf);
 }
 
-void GGA_Handler() //Rec'd GGA
+void GGA_Handler()
 {
   // fix time
   if (parser.getArg(0, fixTime)){}
