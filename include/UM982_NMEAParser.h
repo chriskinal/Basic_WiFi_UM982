@@ -30,6 +30,10 @@
  * author or the affirmer.
  */
 
+// Modified NMEA parser to work with UM982 Unicorecomm extended NMEA and Unicorecomm proprietary sentences.
+// Line 73 kSentenceMaxSize increased to 250 bytes to accomodate Unicorecomm proprietary sentences. This will increase the parser memory usage.
+// Line 407 increased mIndex from 5 to 6 to accomdate UM982 extended NMEA and proprietary types.
+
 #ifndef __NMEAParser_h__
 #define __NMEAParser_h__
 

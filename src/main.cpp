@@ -30,13 +30,13 @@ bool deBug = false;
 #define SerialGPS2 Serial2  // UM982 COM 3 SXT, TRA2 & ROT messages
 #define RX2   16
 #define TX2   17
-const int32_t baudGPS = 460800;
+const int32_t baudGPS = 115200;
 
 #define SerialAOG Serial    //AgOpen / USB
 const int32_t baudAOG = 115200;
 
 //is the GGA the second sentence?
-const bool isLastSentenceGGA = true;
+//const bool isLastSentenceGGA = true;
 
 //WiFi
 
@@ -66,8 +66,6 @@ int i = 0;
  /* A parser is declared with 3 handlers at most */
 NMEAParser<5> parser;
 
-bool isTriggered = false, blink;
-
 // Declare functions
 
 void errorHandler();
@@ -87,34 +85,40 @@ void CalculateChecksum();
 void setup()
 {
     
-    // Setup LEDs
-    pinMode(pwrLED, OUTPUT);
-    pinMode(imuLED, OUTPUT);
-    pinMode(ggaLED, OUTPUT);
-    pinMode(wifLED, OUTPUT);
-    digitalWrite(pwrLED, HIGH);
-    digitalWrite(imuLED, LOW);
-    digitalWrite(ggaLED, LOW);
-    digitalWrite(wifLED, LOW);
-    
-    // Setup serial ports
-    SerialAOG.setRxBufferSize(512);
-    SerialAOG.begin(baudAOG);
-    SerialGPS.setRxBufferSize(512);
-    SerialGPS.begin(baudGPS, SERIAL_8N1, RX1, TX1);
-    Serial.println("Started GPS1 *****************");
-    SerialGPS2.setRxBufferSize(512);
-    SerialGPS2.begin(baudGPS, SERIAL_8N1, RX2, TX2);
-    Serial.println("Started GPS2 ******************");
-   
-    //the dash means wildcard
-    parser.setErrorHandler(errorHandler);
-    parser.setDefaultHandler(unknownCommand);
-    parser.addHandler("G-GGA", GGA_Handler);
-    parser.addHandler("G-VTG", VTG_Handler);
-    parser.addHandler("G-ROT", ROT_Handler);
-    parser.addHandler("G-TRA2", TRA2_Handler);
-    parser.addHandler("KSXT", SXT_Handler);
+  // Setup LEDs
+  pinMode(pwrLED, OUTPUT);
+  pinMode(imuLED, OUTPUT);
+  pinMode(ggaLED, OUTPUT);
+  pinMode(wifLED, OUTPUT);
+  digitalWrite(pwrLED, HIGH);
+  digitalWrite(imuLED, LOW);
+  digitalWrite(ggaLED, LOW);
+  digitalWrite(wifLED, LOW);
+  
+  // Setup serial ports
+  SerialAOG.setRxBufferSize(512);
+  SerialAOG.begin(baudAOG);
+  SerialGPS.setRxBufferSize(512);
+  SerialGPS.begin(baudGPS, SERIAL_8N1, RX1, TX1);
+  Serial.println("Started GPS1 *****************");
+  SerialGPS2.setRxBufferSize(512);
+  SerialGPS2.begin(baudGPS, SERIAL_8N1, RX2, TX2);
+  Serial.println("Started GPS2 ******************");
+
+  // UM982 does not save 90 degree heading offset configuration. Must be sent at each power up.
+  SerialGPS.write("config heading offset 90 0\r\n");
+  
+  // Uncomment to ignore NEMA sentence checksum errors. Needed when using NMEA test sentences that may not have correct checksums.
+  parser.setHandleCRC(false);
+
+  //the dash means wildcard
+  parser.setErrorHandler(errorHandler);
+  parser.setDefaultHandler(unknownCommand);
+  parser.addHandler("G-GGA", GGA_Handler);
+  parser.addHandler("G-VTG", VTG_Handler);
+  parser.addHandler("G-ROT", ROT_Handler);
+  parser.addHandler("G-TRA2", TRA2_Handler);
+  parser.addHandler("KSXT", SXT_Handler);
       
 //WiFi
 
@@ -159,7 +163,7 @@ void setup()
       digitalWrite(2, HIGH);
       digitalWrite(wifLED, HIGH);
       Serial.println();
-      Serial.print("WiFi IP of roof module: "); Serial.println(WiFi.localIP());
+      Serial.print("WiFi IP AOG GPS Module: "); Serial.println(WiFi.localIP());
       Serial.print("WiFi sending to IP: "); Serial.println(WiF_ipDestination);
       //init UPD Port sending to AOG
       if (WiF_udpPAOGI.begin(portMy)) // portMy  portDestination
@@ -341,10 +345,12 @@ void GGA_Handler() //Rec'd GGA
   digitalWrite(ggaLED,millis()%512>256);
 
   if(deBug) Serial.println("GGA Ready");
+
+  GGAReady = true;
   
-  if (isLastSentenceGGA){
-    BuildPANDA();
-  }
+  // if (isLastSentenceGGA){
+  //   BuildPANDA();
+  // }
 }
 
 void VTG_Handler()
@@ -357,10 +363,10 @@ void VTG_Handler()
 
   if(deBug) Serial.println("VTG Ready");
   
-  if (!isLastSentenceGGA)
-  {
-    BuildPANDA(); 
-  }
+  // if (!isLastSentenceGGA)
+  // {
+  //   BuildPANDA(); 
+  // }
 }
 
 void ROT_Handler()
@@ -372,10 +378,10 @@ void ROT_Handler()
     dtostrf(imuYawRateTmp, 6, 2, imuYawRate);
   }
 
-  if (!isLastSentenceGGA)
-  {
-    BuildPANDA(); 
-  }
+  // if (!isLastSentenceGGA)
+  // {
+  //   BuildPANDA(); 
+  // }
 }
 
 void TRA2_Handler()
@@ -389,10 +395,10 @@ void TRA2_Handler()
   //tra2 roll
   if (parser.getArg(3, imuRoll)){}
 
-  if (!isLastSentenceGGA)
-  {
-    BuildPANDA(); 
-  }
+  // if (!isLastSentenceGGA)
+  // {
+  //   BuildPANDA(); 
+  // }
 }
 
 void SXT_Handler()
@@ -406,10 +412,10 @@ void SXT_Handler()
   //sxt roll
   if (parser.getArg(8, imuRoll)){}
 
-  if (!isLastSentenceGGA)
-  {
-    BuildPANDA(); 
-  }
+  // if (!isLastSentenceGGA)
+  // {
+  //   BuildPANDA(); 
+  // }
 }
 
 void BuildPANDA(void)
@@ -475,8 +481,6 @@ void BuildPANDA(void)
 
   strcat(nme, "\r\n");
 
-  isTriggered = true;
-  
   if (WiF_running)
     {
       WiF_udpPAOGI.beginPacket(WiF_ipDestination, portDestination);
