@@ -34,6 +34,14 @@
 // Line 73 kSentenceMaxSize increased to 250 bytes to accomodate Unicorecomm proprietary sentences. This will increase the parser memory usage.
 // Line 407 increased mIndex from 5 to 6 to accomdate UM982 extended NMEA and proprietary types.
 
+// Error codes
+// 0 - NMEA::NO_ERROR: no error;
+// 1 - NMEA::UNEXPECTED_CHAR: a char which is not expected in the sentence has been encountered;
+// 2 - NMEA::BUFFER_FULL: the sentence is too long to fit in the buffer;
+// 3 - NMEA::TYPE_TOO_LONG: the sentence type has more than 5 characters;
+// 4 - NMEA::CRC_ERROR: the CRC is wrong;
+// 5 - NMEA::INTERNAL_ERROR: the internal state of the parser is wrong, should not happen by the way.
+
 #ifndef __NMEAParser_h__
 #define __NMEAParser_h__
 
