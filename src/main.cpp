@@ -11,8 +11,7 @@
 #include <WiFiUDP.h>
 
 /************************* User Settings *************************/
-
-#define deBugPin   27
+// Set Debug state
 bool deBug = false;
 
 // LED settings
@@ -190,9 +189,6 @@ void setup()
 
 void loop()
 {
-  deBug = !digitalRead(deBugPin);
-  //deBug = true;
-
   //Read incoming nmea from GPS
   if (SerialGPS.available())
     {
@@ -286,8 +282,11 @@ char imuPitch[6];
 
 //ROT
 char imuYawRate[6];
-int32_t imuYawRateTmp;
+float imuYawRateTmp;
 #define MAX_DIGITS 15
+
+//SXT
+float speedKnotsTmp;
 
 // If odd characters showed up in the UM982NMEAParser input.
 void errorHandler()
@@ -335,7 +334,7 @@ void GGA_Handler()
 
   digitalWrite(ggaLED,millis()%512>256);
 
-  if(deBug) Serial.println("GGA Ready");
+  if (deBug) Serial.println("GGA Ready");
 
   GGAReady = true;
   
@@ -362,11 +361,11 @@ void VTG_Handler()
 
 void ROT_Handler()
 {
-  //rot yaw rate degrees/minute 
+  //rot yaw rate degrees/minute then converted to degrees/second
   if (parser.getArg(0, imuYawRateTmp))
   {
     imuYawRateTmp = imuYawRateTmp/60;
-    dtostrf(imuYawRateTmp, 6, 2, imuYawRate);
+    dtostrf(imuYawRateTmp, -6, 2, imuYawRate);
   }
 
   // if (!isLastSentenceGGA)
@@ -400,6 +399,13 @@ void SXT_Handler()
   //sxt pitch
   if (parser.getArg(5, imuPitch)){}
 
+  //sxt speed km/h converted to knots
+  if(parser.getArg(7, speedKnotsTmp))
+  {
+    speedKnotsTmp = speedKnotsTmp/1.852;
+    dtostrf(speedKnotsTmp, -10, 1, speedKnots);
+  }
+
   //sxt roll
   if (parser.getArg(8, imuRoll)){}
 
@@ -414,6 +420,7 @@ void BuildPANDA(void)
   strcpy(nme, "");
 
   strcat(nme, "$PAOGI,");
+  //strcat(nme, "$PANDA,");
 
   strcat(nme, fixTime);
   strcat(nme, ",");
