@@ -27,7 +27,7 @@ bool deBug = false;
 #define SerialGPS2 Serial2  // UM982 COM 3 SXT, TRA2 & ROT messages
 #define RX2   16
 #define TX2   17
-const int32_t baudGPS = 115200;
+const int32_t baudGPS = 460800;
 #define SerialAOG Serial    //AgOpen / USB
 const int32_t baudAOG = 115200;
 
@@ -46,8 +46,11 @@ IPAddress WiF_ipDestination;
 WiFiUDP WiF_udpPAOGI;
 WiFiUDP WiF_udpNtrip;
 
-// Holds state of GGA parser
+// Holds state of parsers
 bool GGAReady = false;
+bool ROTReady = false;
+bool SXTReady = false;
+bool VTGReady = false;
 
 //Dual 
 byte CK_A = 0, CK_B = 0;
@@ -98,10 +101,10 @@ void setup()
   Serial.println("Started GPS2 ******************");
 
   // UM982 does not save 90 degree heading offset configuration. Must be sent at each power up.
-  SerialGPS.write("config heading offset 90 0\r\n");
+  //SerialGPS2.write("config heading offset 90 0\r\n");
   
   // Uncomment to ignore NEMA sentence checksum errors. Needed when using NMEA test sentences that may not have correct checksums.
-  parser.setHandleCRC(false);
+  //parser.setHandleCRC(false);
 
   //the dash means wildcard
   parser.setErrorHandler(errorHandler);
@@ -195,15 +198,15 @@ void loop()
       parser << SerialGPS.read();
     }
 
-  if (SerialGPS2.available())
-    {
-      parser << SerialGPS2.read();
-    }
+  // if (SerialGPS2.available())
+  //   {
+  //     parser << SerialGPS2.read();
+  //   }
 
   //Pass NTRIP etc to GPS
   if (SerialAOG.available())
     {
-      SerialGPS.write(SerialAOG.read());
+      SerialGPS2.write(SerialAOG.read());
     }
 
   if (WiF_running)
@@ -211,10 +214,12 @@ void loop()
       doWiFUDPNtrip();
     }
 
-  if(GGAReady == true )
+  if(GGAReady == true & ROTReady == true & SXTReady == true & VTGReady == true)
     {
       BuildPANDA();
       GGAReady = false;
+      ROTReady = false;
+      SXTReady = false;
       digitalWrite(imuLED,millis()%512>256);
     }
 } 
@@ -247,7 +252,7 @@ void doWiFUDPNtrip() {
   unsigned int packetLenght = WiF_udpNtrip.parsePacket();
   if (packetLenght > 0) {
     WiF_udpNtrip.read(WiF_NTRIP_packetBuffer, packetLenght);
-    SerialGPS.write(WiF_NTRIP_packetBuffer, packetLenght);
+    SerialGPS2.write(WiF_NTRIP_packetBuffer, packetLenght);
   }  
 } 
 
@@ -352,6 +357,8 @@ void VTG_Handler()
   if (parser.getArg(4, speedKnots)){}
 
   if(deBug) Serial.println("VTG Ready");
+
+  VTGReady = true;
   
   // if (!isLastSentenceGGA)
   // {
@@ -367,6 +374,10 @@ void ROT_Handler()
     imuYawRateTmp = imuYawRateTmp/60;
     dtostrf(imuYawRateTmp, -6, 2, imuYawRate);
   }
+
+  if (deBug) Serial.println("ROT Ready");
+
+  ROTReady = true;
 
   // if (!isLastSentenceGGA)
   // {
@@ -400,14 +411,18 @@ void SXT_Handler()
   if (parser.getArg(5, imuPitch)){}
 
   //sxt speed km/h converted to knots
-  if(parser.getArg(7, speedKnotsTmp))
-  {
-    speedKnotsTmp = speedKnotsTmp/1.852;
-    dtostrf(speedKnotsTmp, -10, 1, speedKnots);
-  }
+  // if(parser.getArg(7, speedKnotsTmp))
+  // {
+  //   speedKnotsTmp = speedKnotsTmp/1.852;
+  //   dtostrf(speedKnotsTmp, -10, 1, speedKnots);
+  // }
 
   //sxt roll
   if (parser.getArg(8, imuRoll)){}
+
+  if (deBug) Serial.println("SXT Ready");
+
+  SXTReady = true;
 
   // if (!isLastSentenceGGA)
   // {
@@ -460,6 +475,7 @@ void BuildPANDA(void)
 
   //12    
   strcat(nme, imuHeading);
+  //strcat(nme, vtgHeading);
   strcat(nme, ",");
 
   //13
